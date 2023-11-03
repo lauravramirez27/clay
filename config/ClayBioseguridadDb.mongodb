@@ -393,4 +393,115 @@ db.venta.find({
 
   use("ClayBioseguridadDb");
   db.venta.find({})
+/* --------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ */
 
+/* Obtener el nombre de las prendas junto con la cantidad mínima y máxima de insumos necesarios para su fabricación:
+javascript
+ */
+db.prenda.aggregate([
+  {
+    $lookup: {
+      from: "insumo",
+      localField: "Id",
+      foreignField: "Id",
+      as: "insumos"
+    }
+  },
+  {
+    $unwind: "$insumos"
+  },
+  {
+    $group: {
+      _id: "$Nombre",
+      minInsumos: { $min: "$insumos.stock_min" },
+      maxInsumos: { $max: "$insumos.stock_max" }
+    }
+  }
+]);
+/* Obtener la lista de empleados y su información de contacto, incluyendo el nombre, el cargo y el Municipio:
+javascript */
+
+db.empleado.aggregate([
+  {
+    $lookup: {
+      from: "municipio",
+      localField: "IdMunicipioFK",
+      foreignField: "Id",
+      as: "municipio"
+    }
+  },
+  {
+    $lookup: {
+      from: "cargos",
+      localField: "IdCargoFK",
+      foreignField: "Id",
+      as: "cargo"
+    }
+  },
+  {
+    $project: {
+      nombre: 1,
+      "municipio.nombre": 1,
+      "cargo.descripcion": 1
+    }
+  }
+]);
+/* Mostrar la lista de prendas y su respectivo stock disponible:
+javascript */
+
+db.inventario.aggregate([
+  {
+    $lookup: {
+      from: "prenda",
+      localField: "IdPrendaFK",
+      foreignField: "Id",
+      as: "prenda"
+    }
+  },
+  {
+    $project: {
+      "prenda.Nombre": 1,
+      ValorVtaCop: 1,
+      ValorVtaUsd: 1,
+      "prenda.IdEstadoFK": 1,
+      cantidad_disponible: 1
+    }
+  }
+]);
+/* Mostrar la lista de ventas realizadas en un rango de fechas específico junto con el nombre del cliente y la forma de pago:
+javascript
+*/
+db.venta.aggregate([
+  {
+    $lookup: {
+      from: "cliente",
+      localField: "IdClienteFK",
+      foreignField: "Id",
+      as: "cliente"
+    }
+  },
+  {
+    $lookup: {
+      from: "forma_pago",
+      localField: "IdFormaPagoFK",
+      foreignField: "Id",
+      as: "forma_pago"
+    }
+  },
+  {
+    $match: {
+      Fecha: {
+        $gte: new Date('2023-07-01'),
+        $lt: new Date('2023-08-01')
+      }
+    }
+  },
+  {
+    $project: {
+      "cliente.nombre": 1,
+      "forma_pago.descripcion": 1,
+      Fecha: 1
+    }
+  }
+]);
